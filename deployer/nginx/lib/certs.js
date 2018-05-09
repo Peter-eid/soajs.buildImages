@@ -135,7 +135,7 @@ let ssl = {
         if (!options.nginx.config.ssl.customCerts || options.nginx.config.ssl.customCerts !== '1') {
             let crtPath = path.join(options.nginx.location, '/ssl/tls.crt');
             let keyPath = path.join(options.nginx.location, '/ssl/tls.key');
-            openssl('req', { x509: true, newkey: 'rsa:4096', keyout: keyPath, out: crtPath, days: '365', nodes: true, subj: `/CN=${options.nginx.masterDomain};` }, (error, buffer) => {
+            openssl('req', { x509: true, newkey: 'rsa:4096', keyout: keyPath, out: crtPath, days: '730000', nodes: true, subj: `/CN=*.${options.nginx.masterDomain}` }, (error, buffer) => {
                 if (error) throw new Error(error);
 
                 console.log (buffer.toString());

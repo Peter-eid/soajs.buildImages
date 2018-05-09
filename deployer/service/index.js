@@ -14,6 +14,7 @@ const gitRepo = process.env.SOAJS_GIT_REPO;
 const gitCommit = process.env.SOAJS_GIT_COMMIT;
 const gitBranch = process.env.SOAJS_GIT_BRANCH || "master";
 const gitToken = process.env.SOAJS_GIT_TOKEN;
+const gitAuth = process.env.SOAJS_GIT_AUTH || null;
 const gitDomain = process.env.SOAJS_GIT_DOMAIN || "github.com";
 const gitProvider = process.env.SOAJS_GIT_PROVIDER || "github";
 const soajsProfile = process.env.SOAJS_PROFILE;
@@ -71,7 +72,32 @@ let utils = {
                 }
             };
             options.clonePath = serviceDirectory + gitRepo + "/";
-            utilsFile.clone(options, cb);
+            if (options.repo.git.provider === 'bitbucket' && options.repo.git.domain === 'bitbucket.org' && gitAuth) {
+                const request = require("request");
+                let opts = {
+                    method: 'POST',
+                    json: true,
+                    url: 'https://bitbucket.org/site/oauth2/access_token',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': "application/json",
+                        'Cache-Control': 'no-cache',
+                        'Authorization': gitAuth
+                    },
+                    form: {grant_type: 'client_credentials'}
+                };
+                request(opts, function (error, response, body) {
+                    if (error) {
+                        throw new Error(error);
+                    }else{
+                        options.repo.git.token = body.access_token;
+                        utilsFile.clone(options, cb);
+                    }
+                });
+            }
+            else {
+                utilsFile.clone(options, cb);
+            }
         });
     },
 
@@ -157,11 +183,12 @@ let utils = {
             runParams += "--max_old_space_size=" + serviceMemory + ' ';
         }
 
-        let repoNameClean = gitRepo.replace(/[\\/\*\?"<>\|,\.-]/g, '_').toLowerCase();
-        let haNameClean = haName.toLowerCase();
-        let logPath = path.join(config.paths.logging.path, `${soajsEnv}-${repoNameClean}--${haNameClean}--service.log`);
+        //let repoNameClean = gitRepo.replace(/[\\/\*\?"<>\|,\.-]/g, '_').toLowerCase();
+        //let haNameClean = haName.toLowerCase();
+        //let logPath = path.join(config.paths.logging.path, `${soajsEnv}-${repoNameClean}--${haNameClean}--service.log`);
 
-        runParams += serviceFile + ` 2>&1 | tee ${logPath}`;
+        // runParams += serviceFile + ` 2>&1 | tee ${logPath}`;
+        runParams += serviceFile;
 
         util.log(`Running ${runParams}`);
         const runService = spawn('bash', [ '-c', runParams ], {
@@ -196,14 +223,14 @@ let lib = {
 		        utils.cloneRepo(options, (error, repo) => {
 			        if(repo) {
 				        //Check if accelerate deployment is checked
-				        utils.accelerateDeployment(options, (error1, res1) => {
-					        //install service dependencies and run the service
+				        // utils.accelerateDeployment(options, (error1, res1) => {
+					        install service dependencies and run the service
 					        utils.npmInstall(options, (error2) => {
 						        if(error2)
 							        return cb(error2);
 						        utils.runService(options, cb);
 					        });
-				        });
+				        // });
 			        }
 		        });
 	        }
@@ -213,14 +240,14 @@ let lib = {
 			        utils.cloneRepo(options, (error, repo) => {
 				        if(repo) {
 					        //Check if accelerate deployment is checked
-					        utils.accelerateDeployment(options, (error1, res1) => {
+					        // utils.accelerateDeployment(options, (error1, res1) => {
 						        //install service dependencies and run the service
 						        utils.npmInstall(options, (error2) => {
 							        if(error2)
 								        return cb(error2);
 							        utils.runService(options, cb);
 						        });
-					        });
+					        // });
 				        }
 			        });
 		        });

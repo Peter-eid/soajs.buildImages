@@ -82,8 +82,10 @@ function getUI(cb) {
 		repo: process.env.SOAJS_GIT_REPO,
 		branch: process.env.SOAJS_GIT_BRANCH || 'master',
 		path: process.env.SOAJS_GIT_PATH || '/',
-		token: process.env.SOAJS_GIT_TOKEN || null
-	};
+		token: process.env.SOAJS_GIT_TOKEN || null,
+		auth : process.env.SOAJS_GIT_AUTH || null
+
+};
 	
 	doClone(gitInfo, (error) => {
 		if (error) throw new Error(error);
@@ -96,43 +98,87 @@ function getUI(cb) {
  * @param gitInfo {Object} contains the information of the git repo to clone the code from
  * @param mCb {Function} Callback
  */
-function doClone(gitInfo, mCb){
-	// clone ui
-	let cloneOptions = {
-		repo: {
-			git: {
-				provider: gitInfo.provider,
-				domain: gitInfo.domain,
-				owner: gitInfo.owner,
-				repo: gitInfo.repo,
-				branch: gitInfo.branch,
-				token: gitInfo.token
-			}
-		},
-		clonePath: config.paths.tempFolders.temp.path
-	};
-	
-	log(`Cloning ${gitInfo.owner}/${gitInfo.repo} ...`);
-	utils.clone(cloneOptions, (error) => {
-		if (error) return mCb(error);
-		
-		let source = path.join(config.paths.tempFolders.temp.path, gitInfo.path || '/');
-		let destination = path.join (config.nginx.siteLocation, '/');
-		fse.copy(source, destination, { overwrite: true }, (error) => {
-			if (error) {
-				log(`Unable to move contents of ${gitInfo.owner}/${gitInfo.repo} to ${destination} ...`);
-				return mCb(error);
-			}
-			
-			// delete contents of temp before cloning a new repository into it
-			fse.remove(config.paths.tempFolders.temp.path, (error) => {
-				if (error) return mCb(error);
-				
-				log(`${gitInfo.owner}/${gitInfo.repo} cloned successfully ...`);
-				return setTimeout(mCb, 100);
-			});
-		});
-	});
+function doClone(gitInfo, mCb) {
+    // clone ui
+    let cloneOptions = {
+        repo: {
+            git: {
+                provider: gitInfo.provider,
+                domain: gitInfo.domain,
+                owner: gitInfo.owner,
+                repo: gitInfo.repo,
+                branch: gitInfo.branch,
+                token: gitInfo.token
+            }
+        },
+        clonePath: config.paths.tempFolders.temp.path
+    };
+
+    log(`Cloning ${gitInfo.owner}/${gitInfo.repo} ...`);
+    if (cloneOptions.repo.git.provider === 'bitbucket' && cloneOptions.repo.git.domain === 'bitbucket.org' && gitInfo.auth) {
+        const request = require("request");
+        let opts = {
+            method: 'POST',
+            json: true,
+            url: 'https://bitbucket.org/site/oauth2/access_token',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': "application/json",
+                'Cache-Control': 'no-cache',
+                'Authorization': gitInfo.auth
+            },
+            form: {grant_type: 'client_credentials'}
+        };
+        request(opts, function (error, response, body) {
+            if (error) {
+                throw new Error(error);
+            } else {
+                cloneOptions.repo.git.token = body.access_token;
+                utils.clone(cloneOptions, (error) => {
+                    if (error) return mCb(error);
+
+                    let source = path.join(config.paths.tempFolders.temp.path, gitInfo.path || '/');
+                    let destination = path.join (config.nginx.siteLocation, '/');
+                    fse.copy(source, destination, { overwrite: true }, (error) => {
+                        if (error) {
+                            log(`Unable to move contents of ${gitInfo.owner}/${gitInfo.repo} to ${destination} ...`);
+                            return mCb(error);
+                        }
+
+                        // delete contents of temp before cloning a new repository into it
+                        fse.remove(config.paths.tempFolders.temp.path, (error) => {
+                            if (error) return mCb(error);
+
+                            log(`${gitInfo.owner}/${gitInfo.repo} cloned successfully ...`);
+                            return setTimeout(mCb, 100);
+                        });
+                    });
+                });
+            }
+        });
+    }
+    else {
+        utils.clone(cloneOptions, (error) => {
+            if (error) return mCb(error);
+
+            let source = path.join(config.paths.tempFolders.temp.path, gitInfo.path || '/');
+            let destination = path.join (config.nginx.siteLocation, '/');
+            fse.copy(source, destination, { overwrite: true }, (error) => {
+                if (error) {
+                    log(`Unable to move contents of ${gitInfo.owner}/${gitInfo.repo} to ${destination} ...`);
+                    return mCb(error);
+                }
+
+                // delete contents of temp before cloning a new repository into it
+                fse.remove(config.paths.tempFolders.temp.path, (error) => {
+                    if (error) return mCb(error);
+
+                    log(`${gitInfo.owner}/${gitInfo.repo} cloned successfully ...`);
+                    return setTimeout(mCb, 100);
+                });
+            });
+        });
+    }
 }
 
 /**

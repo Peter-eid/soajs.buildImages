@@ -148,7 +148,7 @@ let lib = {
                 } else {
                     fs.writeFile(profileLocation + "profile.js", customProfile, (error1) => {
                        if(error1){
-                           util.log(error1)
+                           util.log(error1);
                            throw new Error("Error while copying the custom profile to: " + profileLocation);
                        }
                        util.log("Successfully copied the custom profile from " + profilePath + " to " + profileLocation);

@@ -117,6 +117,21 @@ let builder = {
         }
 
     	log("writing server entry for", options.domain);
+
+
+        if(options.https && options.apiConf){
+            let certsLocation = path.join(config.nginx.location, '/ssl');
+            if (config.nginx.config.ssl.customCerts){
+                certsLocation = config.nginx.config.ssl.customCertsPath;
+            }
+            wstream.write("server {\n");
+            wstream.write("  listen       " + options.port + " default_server;\n");
+            wstream.write("  server_name _;\n");
+            wstream.write("  ssl_certificate         " + certsLocation + "/tls.crt;\n");
+            wstream.write("  ssl_certificate_key     " + certsLocation + "/tls.key;\n");
+            wstream.write("  return 444;\n");
+            wstream.write("}\n");
+        }
         wstream.write("server {\n");
         wstream.write("  listen       " + options.port + ";\n");
         wstream.write("  server_name  " + options.domain + ";\n");
@@ -150,6 +165,7 @@ let builder = {
                 builder.writeServerRedirect(options, wstream);
             }
             options.https = true;
+            options.apiConf = true;
             options.port = "443 ssl";
             builder.writeServer(options, wstream);
         }

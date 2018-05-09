@@ -6,7 +6,7 @@
     "name": "soajs team",
     "email": "team@soajs.org"
   },
-  "license" : "Apache-2.0",
+  "license": "Apache-2.0",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -18,15 +18,14 @@
   "scripts": {
     "test": "grunt test"
   },
-  "devDependencies": {
-
-  },
+  "devDependencies": {},
   "dependencies": {
     "archiver": "2.1.0",
     "async": "2.1.4",
     "dockerode": "2.5.3",
     "mkdirp": "0.5.1",
     "ncp": "2.0.0",
+    "request": "^2.85.0",
     "rimraf": "2.5.4",
     "soajs": "2.0.*",
     "soajs.core.modules": "2.0.*"
