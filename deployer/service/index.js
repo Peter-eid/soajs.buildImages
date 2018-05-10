@@ -224,7 +224,7 @@ let lib = {
 			        if(repo) {
 				        //Check if accelerate deployment is checked
 				        // utils.accelerateDeployment(options, (error1, res1) => {
-					        install service dependencies and run the service
+					        //install service dependencies and run the service
 					        utils.npmInstall(options, (error2) => {
 						        if(error2)
 							        return cb(error2);
